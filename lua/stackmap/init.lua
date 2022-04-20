@@ -1,4 +1,8 @@
-print("Ok, we loaded stackmap now")
+local M = {}
 
+M.setup = function(opts)
+  print("Options:", opts)
+end
 
-require("stackmap")
+return M
+
