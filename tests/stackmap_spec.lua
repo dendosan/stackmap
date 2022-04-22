@@ -51,7 +51,7 @@ describe("stackmap", function()
 
     -- assert.are.same({}, require("stackmap")._stack)
 
-    require("stackmap").pop("test1")
+    require("stackmap").pop("test1", "n")
     local after_pop = find_map("asdfasdf")
     assert.are.same(nil, after_pop)
   end)
@@ -63,7 +63,7 @@ describe("stackmap", function()
       asdfasdf = rhs,
     })
 
-    require("stackmap").pop("test1")
+    require("stackmap").pop("test1", "n")
     local after_pop = find_map("asdfasdf")
     assert.are.same("echo 'OG MAPPING'", after_pop.rhs)
   end)

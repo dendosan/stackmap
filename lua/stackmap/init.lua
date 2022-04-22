@@ -34,28 +34,30 @@ M.push = function(name, mode, mappings)
     vim.keymap.set(mode, lhs, rhs)
   end
 
-  M._stack[name] = {
-    mode = mode,
+  -- TODO: look into metatables --> similar to dunder methods in python
+  M._stack[name] = M._stack[name] or {}
+
+  M._stack[name][mode] = {
     existing = existing_maps,
     mappings = mappings,
   }
 
 end
 
-M.pop = function(name)
-  local state = M._stack[name]
-  M._stack[name] = nil
+M.pop = function(name, mode)
+  local state = M._stack[name][mode]
+  M._stack[name][mode] = nil
 
-  for lhs, rhs in pairs(state.mappings) do
+  for lhs in pairs(state.mappings) do
     if state.existing[lhs] then
       -- handle mappings that existed
       local og_mapping = state.existing[lhs]
 
       -- TODO: Handle the options from the table
-      vim.keymap.set(state.mode, lhs, og_mapping.rhs)
+      vim.keymap.set(mode, lhs, og_mapping.rhs)
     else
       -- handle mappings that didn't exist
-      vim.keymap.del(state.mode, lhs)
+      vim.keymap.del(mode, lhs)
     end
   end
 end
