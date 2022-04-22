@@ -1,4 +1,5 @@
-local find_map = function(maps, lhs)
+local find_map = function(lhs)
+  local maps = vim.api.nvim_get_keymap("n")
   for _, map in ipairs(maps) do
     if map.lhs == lhs then
       return map
@@ -7,6 +8,13 @@ local find_map = function(maps, lhs)
 end
 
 describe("stackmap", function()
+  before_each(function()
+    require "stackmap"._clear()
+
+    -- Please don't have this mapping when we start
+    pcall(vim.keymap.del, "n", "asdfasdf")
+  end)
+
   it("can be required", function()
     require("stackmap")
   end)
@@ -17,8 +25,7 @@ describe("stackmap", function()
       asdfasdf = rhs,
     })
 
-    local maps = vim.api.nvim_get_keymap("n")
-    local found = find_map(maps, "asdfasdf")
+    local found = find_map("asdfasdf")
     assert.are.same(rhs, found.rhs)
   end)
 
@@ -29,11 +36,35 @@ describe("stackmap", function()
       ["asdf_2"] = rhs .. "2",
     })
 
-    local maps = vim.api.nvim_get_keymap("n")
-    local found_1 = find_map(maps, "asdf_1")
+    local found_1 = find_map("asdf_1")
     assert.are.same(rhs .. "1", found_1.rhs)
 
-    local found_2 = find_map(maps, "asdf_2")
+    local found_2 = find_map("asdf_2")
     assert.are.same(rhs .. "2", found_2.rhs)
+  end)
+
+  it("can delete mappings after pop: no existing", function()
+    local rhs = "echo 'This is a test'"
+    require("stackmap").push("test1", "n", {
+      asdfasdf = rhs,
+    })
+
+    -- assert.are.same({}, require("stackmap")._stack)
+
+    require("stackmap").pop("test1")
+    local after_pop = find_map("asdfasdf")
+    assert.are.same(nil, after_pop)
+  end)
+
+  it("can delete mappings after pop: yes existing", function()
+    vim.keymap.set("n", "asdfasdf", "echo 'OG MAPPING'")
+    local rhs = "echo 'This is a test'"
+    require("stackmap").push("test1", "n", {
+      asdfasdf = rhs,
+    })
+
+    require("stackmap").pop("test1")
+    local after_pop = find_map("asdfasdf")
+    assert.are.same("echo 'OG MAPPING'", after_pop.rhs)
   end)
 end)

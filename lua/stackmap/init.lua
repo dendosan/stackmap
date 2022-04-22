@@ -1,19 +1,16 @@
 local M = {}
 
-M.setup = function(opts)
-  print("Options:", opts)
-end
+-- M.setup = function(opts)
+--   print("Options:", opts)
+-- end
 
 -- functions we need:
 -- - vim.keymap.set(...) --> create new keymaps
 -- - nvim_get_keymap
 
--- vim.api
-
 local find_mapping = function(maps, lhs)
-  for _, value in pairs(maps) do
+  for _, value in ipairs(maps) do
     if value.lhs == lhs then
-      print("Found mapping:", lhs, P(value))
       return value
     end
   end
@@ -28,30 +25,56 @@ M.push = function(name, mode, mappings)
   for lhs, rhs in pairs(mappings) do
     local existing = find_mapping(maps, lhs)
     if existing then
-      table.insert(existing_maps, existing)
+      existing_maps[lhs] = existing
     end
   end
-
-  M._stack[name] = existing_maps
 
   for lhs, rhs in pairs(mappings) do
     -- TODO: need some way to pass options in here
     vim.keymap.set(mode, lhs, rhs)
   end
+
+  M._stack[name] = {
+    mode = mode,
+    existing = existing_maps,
+    mappings = mappings,
+  }
+
 end
 
 M.pop = function(name)
+  local state = M._stack[name]
+  M._stack[name] = nil
+
+  for lhs, rhs in pairs(state.mappings) do
+    if state.existing[lhs] then
+      -- handle mappings that existed
+      local og_mapping = state.existing[lhs]
+
+      -- TODO: Handle the options from the table
+      vim.keymap.set(state.mode, lhs, og_mapping.rhs)
+    else
+      -- handle mappings that didn't exist
+      vim.keymap.del(state.mode, lhs)
+    end
+  end
 end
 
-M.push("debug_mode", "n", {
+--[[
+lua require("stackmap").push("debug_mode", "n", {
   [" st"] = "echo 'Hello'",
   [" sz"] = "echo 'Goodbye'",
 })
---[[
-lua require("stackmap").push("debug_mode", "n", {
-  [",t"] = "echo 'Hello'",
-  [",sz"] = "echo 'Hello'",
-})
+...
+push "debug"
+push "other"
+pop "debug"
+pop "other
+lua require("mapstack").pop("debug_mode")
 ]]
+
+M._clear = function()
+  M._stack = {}
+end
 
 return M
